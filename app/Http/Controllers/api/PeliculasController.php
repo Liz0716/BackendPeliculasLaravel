@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\api;
 
 use App\Http\Controllers\Controller;
+use App\Models\genero;
 use App\Models\peliculas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -12,149 +13,112 @@ use App\Models\User;
 
 class PeliculasController extends Controller
 {
-    //Crear la pelicula
-    public function create(Request $request)
+    public function getPeliculas(Request $request)
     {
-        //Validar los datos
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required',
-            'director' => 'required',
-            'anio_publicacion' => 'required',
-            'id_genero' => 'required',
-            'id_user' => 'required'
-        ]);
-        //Si encuentra un error, devuelve una respuesta
-        if ($validator->fails()) {
-            return response()->json([
-                'estatus' => 0,
-                'mensaje' => $validator->errors()
-            ]);
+        $user = auth()->user();
+
+        $query = peliculas::with(['genero'])
+            ->where('eliminado', 0);
+
+        if ($user->rol == 0) {
+            $query->where('id_user', $user->id);
+
         }
 
-        //Si no hay, crea la pelicula
-        $peliculas = new peliculas();
-        $peliculas->nombre = $request->nombre;
-        $peliculas->director = $request->director;
-        $peliculas->anio_publicacion = $request->anio_publicacion;
-        $peliculas->id_genero = $request->id_genero;
-        $peliculas->id_user = $request->id_user;
-        $peliculas->save();
+        if ($request->filled('id_genero')) {
+            $query->where('id_genero', $request->input('id_genero'));
+        }
+
+        $peliculas = $query->get();
+
+
 
         return response()->json([
-            'estatus' => 1,
-            'mensaje' => "Pelicula Registrada",
-            'data' => $peliculas
-
+            'estatus' => true,
+            'peliculas' => $peliculas
         ]);
     }
 
-    //Obtener todas las peliculas
-    public function PeliculasAll()
+    public function getPeliculaById($peliculaId)
     {
-        $peliculas= peliculas::where('eliminado',FALSE)
-        ->with('genero')
-        ->get();
-        return response()->json([
-            'estatus' => 1,
-            'data' => $peliculas->map(function($pelicula){
-                return [
-                    'id' => $pelicula->id,
-                    'nombre' => $pelicula->nombre,
-                    'director' => $pelicula->director,
-                    'anio_publicacion' => $pelicula->anio_publicacion,
-                    'genero' => $pelicula->genero->nombre,
-                ];
-            })
+        $pelicula = peliculas::with(['genero'])->find($peliculaId);
 
-        ]);
+        $array = $pelicula ? [
+            'id' => $pelicula->id,
+            'nombre' => $pelicula->nombre,
+            'sinopsis' => $pelicula->sinopsis,
+            'director' => $pelicula->director,
+            'anio_publicacion' => $pelicula->anio_publicacion,
+            'urlImagen' => $pelicula->urlImagen,
+            'duracion' => $pelicula->duracion,
+            'id_user' => $pelicula->id_user,
+            'id_genero' => $pelicula->id_genero,
+
+
+        ] : [];
+        return response()->json($array);
     }
 
-    //Editar las peliculas
-    public function update(Request $request, $id){
-        // Busqueda de la pelicula
-        $peliculas = peliculas::find($id);
-        if(!$peliculas){
-            return response()->json([
-                'estatus' => 0,
-                'mensaje' => 'Pelicula no encontrada'
+    public function insertPelicula(Request $request)
+    {
+        $data = $request->only(['nombre', 'sinopsis', 'director', 'anio_publicacion', 'urlImagen', 'duracion', 'id_user', 'id_genero']);
+        $pelicula = peliculas::create($data);
 
-            ]);
-        }
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required',
-        ]);
-        if ($validator->fails()) {
-            //Si tiene problemas genere una respuesta
-            return response()->json([
-                'estatus' => 0,
-                'mensaje' => $validator->errors()
-
-            ]);
-        }
-        $peliculas->nombre = $request->nombre;
-        $peliculas->anio_publicacion = $request->anio_publicacion;
-        $peliculas->director = $request->director;
-
-        $peliculas->save();
-        if( $peliculas->save()){
-            return response()->json([
-                'estatus' => 1,
-                'mensaje' => 'Pelicula Actualizada'
-
-            ]);
-        }else{
-            return response()->json([
-                'estatus' => 0,
-                'mensaje' => 'Pelicula No Actualizada'
-
-            ]);
-        }
-
+        return response()->json(['estatus' => true, 'id' => $pelicula->id]);
     }
 
-    //Eliminar pelicula
-    public function delete($id){
-        $peliculas = peliculas::find($id);
-        //Cambiamos el campo de eliminado y guardamos el cambio
-        $peliculas->eliminado = true;
-        $peliculas->save();
-        return response()->json([
-            'estatus' => 1,
-            'mensaje' => 'Pelicula Eliminada'
-            ]);
-    }
+    public function updatePelicula(Request $request, $peliculaId)
+    {
+        $data = $request->only(['nombre', 'sinopsis', 'director', 'anio_publicacion', 'urlImagen', 'duracion', 'id_user', 'id_genero']);
 
-    //Obtener una pelicula
-    // public function show($id){
-    //     $peliculas = peliculas::with('genero')->find($id);
-    //     return response()->json([
-    //         'estatus' => 1,
-    //         'mensaje' => $peliculas
-    //     ]);
-    // }
+        $pelicula = peliculas::find($peliculaId);
 
-    public function show($id){
-        $peliculas = peliculas::with('genero')->find($id);
-        if (!$peliculas) {
-            return response()->json([
-                'estatus' => 0,
-                'mensaje' => 'Pelicula no encontrada'
-            ]);
+        if (!$pelicula) {
+            return response()->json(['estatus' => false, 'mensaje' => 'Pelicula no encontrado']);
         }
-        return response()->json([
-            'estatus' => 1,
-            'data' => [
-                'id' => $peliculas->id,
-                'nombre' => $peliculas->nombre,
-                'director' => $peliculas->director,
-                'anio_publicacion' => $peliculas->anio_publicacion,
-                'genero' => $peliculas->genero ? $peliculas->genero->nombre : null,
-                'id_user' => $peliculas->id_user,
-                'id_genero' => $peliculas->genero->id
-            ]
-        ]);
 
-
+        $pelicula->update($data);
+        return response()->json(['estatus' => true]);
     }
+
+    public function deletePelicula($peliculaId)
+    {
+        $espacio = peliculas::find($peliculaId);
+
+        if (!$espacio) {
+            return response()->json(['estatus' => false]);
+        }
+
+        $espacio->update(['eliminado' => 1]);
+
+        return response()->json(['estatus' => true]);
+    }
+
+
+    public function getGeneros(){
+        $user = auth()->user();
+
+        $generos = genero::select('id', 'nombre')
+            ->where('eliminado', 0)
+            ->get();
+
+        return response()->json(['generos' => $generos]);
+    }
+
+    public function getUsuarios()
+    {
+        $user = auth()->user();
+
+        if ($user->rol == 0) {
+            $usuarios = User::select('id', 'name')
+                ->where('id', $user->id)
+                ->get();
+        } else {
+            $usuarios = User::select('id', 'name')->get();
+        }
+
+        return response()->json(['usuarios' => $usuarios]);
+    }
+
 
 }

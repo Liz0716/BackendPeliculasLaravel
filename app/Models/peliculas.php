@@ -16,16 +16,23 @@ class peliculas extends Model
     public $timestamps = true;
     protected $fillable = [
         'nombre',
+        'sinopsis',
         'director',
         'anio_publicacion',
-        'id_genero',
+        'urlImagen',
+        'duracion',
         'id_user',
+        'id_genero',
         'eliminado'
     ];
 
     //Ocultar la informacion del valor
     protected $hidden = [
         'eliminado'
+    ];
+
+    protected $cast = [
+        'eliminado'=> 'boolean'
     ];
 
     // Relacion de la tabla de genero

@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('generos', function (Blueprint $table) {
             $table->id();
-            $table->string("nombre", 100);
-            $table->boolean("eliminado")->default(0);
+            $table->string('nombre');
+            $table->boolean('eliminado')->default(0);
             $table->timestamps();
 
         });

@@ -13,11 +13,14 @@ return new class extends Migration
     {
         Schema::create('peliculas', function (Blueprint $table) {
             $table->id();
-            $table->string("nombre", 100);
-            $table->string("director", 100);
-            $table->year("anio_publicacion", 100);
-            $table->unsignedInteger("id_genero")->nullable();
-            $table->unsignedInteger("id_user")->nullable();
+            $table->string('nombre');
+            $table->string('sinopsis');
+            $table->string('director');
+            $table->year('anio_publicacion');
+            $table->string('urlImagen');
+            $table->string('duracion');
+            $table->foreignId('id_user')->references('id')->on('users');
+            $table->foreignId('id_genero')->references('id')->on('generos');
             $table->boolean("eliminado")->default(0);
             $table->timestamps();
         });
