@@ -15,7 +15,13 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required',
             'email' => 'required|email|unique:users',
-            'password' => 'required',
+            'password' => [
+                'required',
+                'regex:/[a-z]/',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[@$!%*#?&]/'
+            ],
             'rol' => 'required'
         ]);
         $user = new User();
@@ -179,5 +185,4 @@ class UserController extends Controller
             'mensaje' => 'Cierre de Sesión'
         ]);
     }
-
 }
